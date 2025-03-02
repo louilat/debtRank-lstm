@@ -1,8 +1,10 @@
 
 using DataFrames
+using CSV
 
 include("src/inputs/parseInputs.jl")
 include("src/debtRank.jl")
+include("src/outputs/parseOutputs.jl")
 
 
 impacts = DataFrame(
@@ -52,4 +54,8 @@ simulation = DebtRankLstmSimulation(impacts, nodes_info, 5)
 
 # forward(simulation, ca, ha, cb, hb, weight_a, weight_b)
 
-getMarginalEffects(simulation, impacted_node, shock)
+∂S∂Wab, ∂S∂Wba = getMarginalEffects(simulation, impacted_node, shock)
+
+output = generateMarginalEffectsOutput(∂S∂Wab, ∂S∂Wba, simulation.nodes_id)
+
+CSV.write("user_effects.csv", output)
