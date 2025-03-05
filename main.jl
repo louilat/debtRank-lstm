@@ -27,14 +27,21 @@ shock = 0.1
 
 simulation = DebtRankLstmSimulation(impacts, nodes_info, 5)
 
+# Forward output
+
+losses_history, score = getForwardSimulation(simulation, impacted_node, shock)
+
+forward_output = generateForwardSimulationHistoryOutput(losses_history, simulation.nodes_id)
+
+CSV.write("simulation_history.csv", forward_output)
+
+
+# Marginal effect output
+
 ∂S∂Wab, ∂S∂Wba = getMarginalEffects(simulation, impacted_node, shock)
 
-println(∂S∂Wab)
+# backward_output = generateMarginalEffectsOutput(∂S∂Wab, ∂S∂Wba, simulation.nodes_id)
 
-println(∂S∂Wba)
+backward_output = generateExistingConnectionsMarginalEffectsOutput(∂S∂Wab, ∂S∂Wba, simulation.nodes_id, impacts)
 
-# output = generateMarginalEffectsOutput(∂S∂Wab, ∂S∂Wba, simulation.nodes_id)
-
-output = generateExistingConnectionsMarginalEffectsOutput(∂S∂Wab, ∂S∂Wba, simulation.nodes_id, impacts)
-
-# CSV.write("user_effects.csv", output)
+CSV.write("connections_marginal_effects.csv", backward_output)

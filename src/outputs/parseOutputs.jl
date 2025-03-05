@@ -17,7 +17,6 @@ function generateMarginalEffectsOutput(∂S∂Wab::Matrix, ∂S∂Wba::Matrix, n
     return select!(output, :node, :id, :impact)
 end
 
-
 function generateExistingConnectionsMarginalEffectsOutput(
     ∂S∂Wab::Matrix, ∂S∂Wba::Matrix, nodes_id::DataFrame, impacts::DataFrame
 )::DataFrame
@@ -41,4 +40,30 @@ function generateExistingConnectionsMarginalEffectsOutput(
     end
     impacts_.marginal_effect = marginal_effects
     return impacts_
+end
+
+function generateForwardSimulationHistoryOutput(
+    losses_history::Vector, nodes_id::DataFrame
+)::DataFrame
+    simulation_output = DataFrame(
+        epoch = [],
+        node = [],
+        id = [],
+        loss = []
+    )
+    for iter in 1:length(losses_history)
+        h = losses_history[iter]
+        epoch_losses = DataFrame(
+            epoch = iter,
+            id = 1:length(h),
+            loss = h
+        )
+        epoch_losses = leftjoin(
+            epoch_losses,
+            nodes_id[nodes_id.cluster .== 1, [:node, :id]],
+            on = :id
+        )
+        simulation_output = vcat(simulation_output, epoch_losses)
+    end
+    return simulation_output
 end

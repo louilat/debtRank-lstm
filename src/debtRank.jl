@@ -106,3 +106,51 @@ function getMarginalEffects(
     )
     return grad[1].lstm.Wab, grad[1].lstm.Wba
 end
+
+function fwd(
+    simulation::DebtRankLstmSimulation,
+    ca::Vector,
+    ha::Vector,
+    cb::Vector,
+    hb::Vector,
+    weight_a::Vector,
+    weight_b::Vector,
+)::Tuple{Vector, Real}
+    losses_history::Vector{Vector} = []
+    for _ in 1:simulation.n_iter
+        ca, ha, cb, hb = simulation.lstm((ca, ha, cb, hb))
+        push!(losses_history, ha)
+    end
+
+    return losses_history, sum(ha .* weight_a) + sum(hb .* weight_b)
+end
+
+function getForwardSimulation(
+    simulation::DebtRankLstmSimulation, impacted_node::String, shock::Real
+)::Tuple{Vector, Real}
+    impacted_node_cluster = simulation.nodes_id[
+        simulation.nodes_id.node .== impacted_node, :
+    ].cluster[1]
+    impacted_node_id = simulation.nodes_id[
+        simulation.nodes_id.node .== impacted_node, :
+    ].id[1]
+
+    nodes_id_a = simulation.nodes_id[simulation.nodes_id.cluster .== 1, :]
+    nodes_id_b = simulation.nodes_id[simulation.nodes_id.cluster .== 0, :]
+
+    na = maximum(nodes_id_a.id)
+    nb = maximum(nodes_id_b.id)
+
+    weight_a = sort!(nodes_id_a, :id).weight
+    weight_b = sort!(nodes_id_b, :id).weight
+
+    ca, ha, cb, hb = zeros(na), zeros(na), zeros(nb), zeros(nb)
+    if impacted_node_cluster == 1
+        ha[impacted_node_id] = shock
+    else
+        hb[impacted_node_id] = shock
+    end
+
+    losses_history, score = fwd(simulation, ca, ha, cb, hb, weight_a, weight_b)
+    return losses_history, score
+end
